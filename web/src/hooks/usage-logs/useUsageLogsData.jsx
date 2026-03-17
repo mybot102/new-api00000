@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal } from '@douyinfe/semi-ui';
+import { Modal, Typography } from '@douyinfe/semi-ui';
 import {
   API,
   getTodayStartTimestamp,
@@ -72,6 +72,11 @@ export const useLogsData = () => {
   const [logCount, setLogCount] = useState(0);
   const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
   const [logType, setLogType] = useState(0);
+
+  // Log detail modal state
+  const [showLogDetailModal, setShowLogDetailModal] = useState(false);
+  const [logDetailData, setLogDetailData] = useState(null);
+  const [loadingLogDetail, setLoadingLogDetail] = useState(false);
 
   // User and admin
   const isAdminUser = isAdmin();
@@ -683,6 +688,25 @@ export const useLogsData = () => {
           value: localCountMode,
         });
       }
+      // 为消费和错误日志添加"查看请求内容"链接
+      if (logs[i].type === 2 || logs[i].type === 5) {
+        const logId = logs[i].id;
+        expandDataLocal.push({
+          key: t('请求内容'),
+          value: (
+            <Typography.Text
+              link
+              onClick={(e) => {
+                e.stopPropagation();
+                loadLogDetail(logId);
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              {t('查看请求内容')}
+            </Typography.Text>
+          ),
+        });
+      }
       expandDatesLocal[logs[i].key] = expandDataLocal;
     }
 
@@ -768,6 +792,28 @@ export const useLogsData = () => {
       showSuccess('已复制：' + text);
     } else {
       Modal.error({ title: t('无法复制到剪贴板，请手动复制'), content: text });
+    }
+  };
+
+  // Load log detail function
+  const loadLogDetail = async (logId) => {
+    setLoadingLogDetail(true);
+    try {
+      const url = isAdminUser
+        ? `/api/log/detail/${logId}`
+        : `/api/log/self/detail/${logId}`;
+      const res = await API.get(url);
+      const { success, message, data } = res.data;
+      if (success) {
+        setLogDetailData(data);
+        setShowLogDetailModal(true);
+      } else {
+        showError(message || t('日志详情不存在'));
+      }
+    } catch (error) {
+      showError(t('获取日志详情失败'));
+    } finally {
+      setLoadingLogDetail(false);
     }
   };
 
@@ -858,6 +904,13 @@ export const useLogsData = () => {
     hasExpandableRows,
     setLogType,
     openParamOverrideModal,
+    loadLogDetail,
+
+    // Log detail modal
+    showLogDetailModal,
+    setShowLogDetailModal,
+    logDetailData,
+    loadingLogDetail,
 
     // Translation
     t,

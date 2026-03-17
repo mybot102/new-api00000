@@ -110,6 +110,12 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 				println("requestBody: ", string(debugBytes))
 			}
 		}
+		// 如果启用了日志内容记录，将请求体保存到 context
+		if common.LogContentEnabled {
+			if bodyBytes, bErr := storage.Bytes(); bErr == nil {
+				common.SetContextKey(c, constant.ContextKeyRequestBody, string(bodyBytes))
+			}
+		}
 		requestBody = common.ReaderOnly(storage)
 	} else {
 		convertedRequest, err := adaptor.ConvertOpenAIRequest(c, info, request)
@@ -180,6 +186,11 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		}
 
 		logger.LogDebug(c, fmt.Sprintf("text request body: %s", string(jsonData)))
+
+		// 如果启用了日志内容记录，将请求体保存到 context
+		if common.LogContentEnabled {
+			common.SetContextKey(c, constant.ContextKeyRequestBody, string(jsonData))
+		}
 
 		requestBody = bytes.NewBuffer(jsonData)
 	}
@@ -504,5 +515,6 @@ func postConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage 
 		IsStream:         relayInfo.IsStream,
 		Group:            relayInfo.UsingGroup,
 		Other:            other,
+		RequestBody:      common.GetContextKeyString(ctx, constant.ContextKeyRequestBody),
 	})
 }
