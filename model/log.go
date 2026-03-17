@@ -155,7 +155,8 @@ type RecordConsumeLogParams struct {
 	IsStream         bool                   `json:"is_stream"`
 	Group            string                 `json:"group"`
 	Other            map[string]interface{} `json:"other"`
-	RequestBody      string                 `json:"-"`
+	// RequestBody 仅在内部传递请求体内容给日志详情记录，不序列化到 JSON 响应中
+	RequestBody string `json:"-"`
 }
 
 func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams) {
