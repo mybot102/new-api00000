@@ -162,10 +162,70 @@ func DeleteHistoryLogs(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// 同时清理对应的日志详情
+	_ = model.DeleteLogDetailsByTimestamp(targetTimestamp)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
 		"data":    count,
 	})
 	return
+}
+
+func GetLogDetail(c *gin.Context) {
+	logId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "无效的日志ID",
+		})
+		return
+	}
+	detail, err := model.GetLogDetailByLogId(logId)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "日志详情不存在",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    detail,
+	})
+}
+
+func GetUserLogDetail(c *gin.Context) {
+	logId, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "无效的日志ID",
+		})
+		return
+	}
+	userId := c.GetInt("id")
+	// 先验证该日志属于当前用户
+	logRecord, err := model.GetLogById(logId)
+	if err != nil || logRecord.UserId != userId {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "日志详情不存在",
+		})
+		return
+	}
+	detail, err := model.GetLogDetailByLogId(logId)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "日志详情不存在",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    detail,
+	})
 }

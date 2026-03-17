@@ -65,4 +65,7 @@ const (
 
 	// ContextKeyLanguage stores the user's language preference for i18n
 	ContextKeyLanguage ContextKey = "language"
+
+	// ContextKeyRequestBody stores the request body sent to upstream for logging
+	ContextKeyRequestBody ContextKey = "log_request_body"
 )

@@ -71,6 +71,15 @@ func GetLogByTokenId(tokenId int) (logs []*Log, err error) {
 	return logs, err
 }
 
+func GetLogById(logId int) (*Log, error) {
+	var log Log
+	err := LOG_DB.Where("id = ?", logId).First(&log).Error
+	if err != nil {
+		return nil, err
+	}
+	return &log, nil
+}
+
 func RecordLog(userId int, logType int, content string) {
 	if logType == LogTypeConsume && !common.LogConsumeEnabled {
 		return
@@ -146,6 +155,8 @@ type RecordConsumeLogParams struct {
 	IsStream         bool                   `json:"is_stream"`
 	Group            string                 `json:"group"`
 	Other            map[string]interface{} `json:"other"`
+	// RequestBody 仅在内部传递请求体内容给日志详情记录，不序列化到 JSON 响应中
+	RequestBody string `json:"-"`
 }
 
 func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams) {
@@ -191,6 +202,12 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	err := LOG_DB.Create(log).Error
 	if err != nil {
 		logger.LogError(c, "failed to record log: "+err.Error())
+	}
+	// 如果启用了日志内容记录且有请求体内容，则保存日志详情
+	if err == nil && common.LogContentEnabled && params.RequestBody != "" {
+		if detailErr := CreateLogDetail(log.Id, params.RequestBody, ""); detailErr != nil {
+			logger.LogError(c, "failed to record log detail: "+detailErr.Error())
+		}
 	}
 	if common.DataExportEnabled {
 		gopool.Go(func() {
